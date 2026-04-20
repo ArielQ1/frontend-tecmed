@@ -1,10 +1,12 @@
 import { Route, Routes } from "react-router"
+import { Home } from "./pages/Home"
 
 function App() {
 
   return (
     <Routes>
-      <Route path="/" element={<h1>miau</h1>}></Route>
+      <Route path="/" element={<Home />}></Route>
+      
     </Routes>
   )
 }
