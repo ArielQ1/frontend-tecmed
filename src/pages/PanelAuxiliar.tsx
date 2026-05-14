@@ -286,7 +286,7 @@ function MateriasList({ auxiliar }: { auxiliar: AuxiliarConMaterias }) {
                   }
                   disabled={m.parciales.length === 0}
                 >
-                  {isOpen ? "▲ Ocultar" : "📝 Ver parciales"}
+                  {isOpen ? "▲ Ocultar" : "📝 Ver practicas"}
                 </button>
               </div>
 

@@ -85,7 +85,7 @@ export function ResumenNotas({ materia, parcialesDocente, notasResumen, inscrito
           .filter(p => p.tipo === "practica")
           .map(p => ({
             id_parcial: p.id_parcial,
-            nombre:     p.nombre_parcial ?? "Práctica",
+            nombre:     p.nombre_parcial ?? "practica",
             valoracion: p.valoracion,
             tipo:       "practica",
           }));
