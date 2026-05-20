@@ -23,8 +23,7 @@ interface Parcial {
 interface Inscrito {
   id_estudiante: string;
   ci_estudiante: number;
-  nombre:        string;
-  apellido:      string;
+  nombre_completo: string;
 }
 
 interface EstadisticaMateria {

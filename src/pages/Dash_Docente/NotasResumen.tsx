@@ -20,8 +20,7 @@ interface ParcialCol {
 interface FilaEstudiante {
   id_estudiante: string;
   ci:            number;
-  nombre:        string;
-  apellido:      string;
+  nombre_completo: string;
   notas:         Record<string, number | null>;  // id_parcial → nota
 }
 
@@ -30,7 +29,7 @@ interface Props {
   // datos ya cargados en DocenteResumen (parciales tipo='parcial' + notas-resumen)
   parcialesDocente: { id_parcial: string; nombre_parcial: string | null; valoracion: number | null }[];
   notasResumen:     Record<string, Record<string, number | null>>;
-  inscritos:        { id_estudiante: string; ci_estudiante: number; nombre: string; apellido: string }[];
+  inscritos:        { id_estudiante: string; ci_estudiante: number; nombre_completo: string}[];
   onVolver:         () => void;
 }
 
@@ -121,8 +120,7 @@ export function ResumenNotas({ materia, parcialesDocente, notasResumen, inscrito
   const filas: FilaEstudiante[] = inscritos.map(e => ({
     id_estudiante: e.id_estudiante,
     ci:            e.ci_estudiante,
-    nombre:        e.nombre,
-    apellido:      e.apellido,
+    nombre_completo: e.nombre_completo,
     notas:         notasResumen[e.id_estudiante] ?? {},
   }));
 
@@ -242,7 +240,7 @@ export function ResumenNotas({ materia, parcialesDocente, notasResumen, inscrito
               return (
                 <tr key={f.id_estudiante} className="dr-reporte-row">
                   <td className="dr-td dr-td-ci">{f.ci}</td>
-                  <td className="dr-td dr-td-nombre">{f.nombre} {f.apellido}</td>
+                  <td className="dr-td dr-td-nombre">{f.nombre_completo}</td>
 
                   {colsParciales.map(c => (
                     <td key={c.id_parcial} className="dr-td dr-td-nota">

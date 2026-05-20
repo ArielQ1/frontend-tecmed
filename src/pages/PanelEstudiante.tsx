@@ -28,8 +28,7 @@ interface Estudiante {
   id_estudiante: string;
   ci_estudiante: number;
   matricula:     number;
-  nombre:        string;
-  apellido:      string;
+  nombre_completo: string;
   anio:          number | null;
   mencion:       string | null;   // ahora es string directo, no UUID
   materias:      Materia[];
@@ -134,8 +133,7 @@ const EstudianteForm = ({ initial, onSave, onClose }: EstudianteFormProps) => {
   const [form, setForm] = useState({
     ci_estudiante: initial?.ci_estudiante ?? "",
     matricula:     initial?.matricula     ?? "",
-    nombre:        initial?.nombre        ?? "",
-    apellido:      initial?.apellido      ?? "",
+    nombre_completo: initial?.nombre_completo ?? "",
     anio:          initial?.anio          ?? "",
     mencion:       initial?.mencion       ?? "",
   });
@@ -147,16 +145,15 @@ const EstudianteForm = ({ initial, onSave, onClose }: EstudianteFormProps) => {
       setForm(f => ({ ...f, [k]: e.target.value }));
 
   const submit = async () => {
-    if (!form.nombre || !form.apellido || !form.ci_estudiante || !form.matricula) {
-      setError("Nombre, apellido, CI y matrícula son requeridos."); return;
+    if (!form.nombre_completo || !form.ci_estudiante || !form.matricula) {
+      setError("Nombre(s) apellido Paterno y apellido Materno, CI y matrícula son requeridos."); return;
     }
     setLoading(true); setError("");
     try {
       await onSave({
         ci_estudiante: Number(form.ci_estudiante),
         matricula:     Number(form.matricula),
-        nombre:        form.nombre,
-        apellido:      form.apellido,
+        nombre_completo:        form.nombre_completo,
         anio:          form.anio ? Number(form.anio) : null,
         mencion:       (form.mencion as string) || null,
       } as any);
@@ -170,24 +167,18 @@ const EstudianteForm = ({ initial, onSave, onClose }: EstudianteFormProps) => {
 
   return (
     <div className="pe-form-grid">
-      <div className="dp-form-row">
-        <div className="dp-form-group">
-          <label className="dp-form-label">Nombre</label>
-          <input className="dp-form-input" value={form.nombre} onChange={handle("nombre")} placeholder="Ej. Melissa" />
-        </div>
-        <div className="dp-form-group">
-          <label className="dp-form-label">Apellido</label>
-          <input className="dp-form-input" value={form.apellido} onChange={handle("apellido")} placeholder="Ej. Rocabado" />
-        </div>
+      <div className="dp-form-group">
+        <label className="dp-form-label">Nombre Completo (Nombre Apellidos)</label>
+        <input className="dp-form-input" value={form.nombre_completo} onChange={handle("nombre")} placeholder="Ej. Melissa Andrea Clavijo Rocabado" />
       </div>
       <div className="dp-form-row">
         <div className="dp-form-group">
           <label className="dp-form-label">CI</label>
-          <input className="dp-form-input" type="number" value={form.ci_estudiante} onChange={handle("ci_estudiante")} placeholder="44400001" />
+          <input className="dp-form-input" type="number" value={form.ci_estudiante} onChange={handle("ci_estudiante")} placeholder="10910680" />
         </div>
         <div className="dp-form-group">
           <label className="dp-form-label">Matrícula</label>
-          <input className="dp-form-input" type="number" value={form.matricula} onChange={handle("matricula")} placeholder="1800001" />
+          <input className="dp-form-input" type="number" value={form.matricula} onChange={handle("matricula")} placeholder="1842522" />
         </div>
       </div>
       <div className="dp-form-row">
@@ -237,7 +228,7 @@ const InscripcionModal = ({
     if (!selected) { setError("Selecciona una materia."); return; }
     setLoading(true); setError(""); setSuccess("");
     try {
-      await api.post(`/admin/estudiantes/inscripciones/?id_estudiante=${estudiante.id_estudiante}&id_materia=${selected}`);
+      await api.post(`/admin/estudiantes/inscripciones/+?id_estudiante=${estudiante.id_estudiante}&id_materia=${selected}`);
       setSuccess("Inscripción realizada correctamente.");
       setSelected("");
       onRefresh();
@@ -249,7 +240,10 @@ const InscripcionModal = ({
   const desinscribir = async (id_materia: string) => {
     setLoading(true); setError(""); setSuccess("");
     try {
-      await api.delete(`/admin/estudiantes/${estudiante.id_estudiante}/materias/${id_materia}`);
+      await api.delete(
+        `/admin/estudiantes/inscripciones/-`,
+        { params: { id_estudiante: estudiante.id_estudiante, id_materia } }
+      );
       setSuccess("Desinscripción realizada.");
       onRefresh();
     } catch (e: unknown) {
@@ -262,7 +256,7 @@ const InscripcionModal = ({
   return (
     <div className="pe-insc-body">
       <p className="pe-insc-subtitle">
-        Materias de <strong>{estudiante.nombre} {estudiante.apellido}</strong>
+        Materias de <strong>{estudiante.nombre_completo}</strong>
       </p>
       <div className="pe-insc-list">
         {estudiante.materias.length === 0 && (
@@ -321,7 +315,7 @@ const EstudianteRow = ({
   return (
     <>
       <tr className={`pe-table-row ${open ? "pe-row-open" : ""}`}>
-        <td className="dp-table td">{est.nombre} <strong>{est.apellido}</strong></td>
+        <td className="dp-table td">{est.nombre_completo}</td>
         <td className="dp-table td">{est.matricula}</td>
         <td className="dp-table td">{est.ci_estudiante}</td>
         <td className="dp-table td">{est.anio ?? "—"}</td>
@@ -414,8 +408,7 @@ export default function EstudiantePanel_admin() {
   const [loading,     setLoading]     = useState(false);
   const [error,       setError]       = useState("");
 
-  const [fNombre,   setFNombre]   = useState("");
-  const [fApellido, setFApellido] = useState("");
+  const [fNombre_Completo,   setFNombre_Completo]   = useState("");
   const [fMencion,  setFMencion]  = useState("");
   const [fAnio,     setFAnio]     = useState("");
 
@@ -429,8 +422,7 @@ export default function EstudiantePanel_admin() {
     setLoading(true); setError("");
     try {
       const params = new URLSearchParams();
-      if (fNombre)   params.append("nombre",   fNombre);
-      if (fApellido) params.append("apellido",  fApellido);
+      if (fNombre_Completo)   params.append("nombre_completo",   fNombre_Completo);
       if (fMencion)  params.append("mencion",   fMencion);
       if (fAnio)     params.append("anio",      fAnio);
       const { data } = await api.get(`/admin/estudiantes/Estudiantes-filter/?${params}`);
@@ -440,7 +432,7 @@ export default function EstudiantePanel_admin() {
     } finally {
       setLoading(false);
     }
-  }, [fNombre, fApellido, fMencion, fAnio]);
+  }, [fNombre_Completo, fMencion, fAnio]);
 
   useEffect(() => { fetchEstudiantes(); }, [fetchEstudiantes]);
 
@@ -480,11 +472,7 @@ export default function EstudiantePanel_admin() {
       <div className="pe-filters">
         <div className="pe-filter-field">
           <span className="pe-filter-icon"><Icon.Search /></span>
-          <input className="pe-filter-input" placeholder="Nombre…" value={fNombre} onChange={e => setFNombre(e.target.value)} />
-        </div>
-        <div className="pe-filter-field">
-          <span className="pe-filter-icon"><Icon.Search /></span>
-          <input className="pe-filter-input" placeholder="Apellido…" value={fApellido} onChange={e => setFApellido(e.target.value)} />
+          <input className="pe-filter-input" placeholder="Nombre…" value={fNombre_Completo} onChange={e => setFNombre_Completo(e.target.value)} />
         </div>
         <select className="pe-filter-select" value={fMencion} onChange={e => setFMencion(e.target.value)}>
           <option value="">Todas las menciones</option>
@@ -496,8 +484,8 @@ export default function EstudiantePanel_admin() {
           <option value="">Todos los años</option>
           {[1,2,3,4,5].map(a => <option key={a} value={a}>Año {a}</option>)}
         </select>
-        {(fNombre || fApellido || fMencion || fAnio) && (
-          <button className="btn-ghost" onClick={() => { setFNombre(""); setFApellido(""); setFMencion(""); setFAnio(""); }}>
+        {(fNombre_Completo || fMencion || fAnio) && (
+          <button className="btn-ghost" onClick={() => { setFNombre_Completo(""); setFMencion(""); setFAnio(""); }}>
             Limpiar
           </button>
         )}
@@ -559,7 +547,7 @@ export default function EstudiantePanel_admin() {
       {modalDelete && (
         <Modal title="Confirmar eliminación" onClose={() => setModalDelete(null)}>
           <p className="dp-delete-msg">
-            ¿Eliminar a <span className="dp-delete-name">{modalDelete.nombre} {modalDelete.apellido}</span>?
+            ¿Eliminar a <span className="dp-delete-name">{modalDelete.nombre_completo}</span>?
             Se eliminarán también sus inscripciones y notas.
           </p>
           <div className="dp-modal-actions">

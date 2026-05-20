@@ -1,5 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "../api/client";
+import { ModalBulk } from "./comp_bulks/ModalBulk_admin";
+import type { BulkResult } from "./comp_bulks/ModalBulk_admin";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -14,13 +16,12 @@ interface Materia {
 }
 
 interface Inscrito {
-  id_estudiante: string;
-  ci_estudiante: number;
-  matricula:     number;
-  nombre:        string;
-  apellido:      string;
-  anio:          number | null;
-  mencion:       string | null;
+  id_estudiante:   string;
+  ci_estudiante:   number;
+  matricula:       number;
+  nombre_completo: string;
+  anio:            number | null;
+  mencion:         string | null;
 }
 
 interface ParcialCol {
@@ -31,9 +32,8 @@ interface ParcialCol {
 }
 
 interface KardexEstudiante {
-  id_estudiante: string;
-  nombre:        string;
-  apellido:      string;
+  id_estudiante:   string;
+  nombre_completo: string;
   materias: {
     id_materia: string;
     parciales: {
@@ -51,67 +51,70 @@ interface Props {
 // ── Componente principal ──────────────────────────────────────────────────────
 
 export function InscritosMateria({ materia, onVolver }: Props) {
-  const [inscritos, setInscritos] = useState<Inscrito[]>([]);
-  const [columnas,  setColumnas]  = useState<ParcialCol[]>([]);
-  const [notasMap,  setNotasMap]  = useState<Record<string, Record<string, number | null>>>({});
-  const [loading,   setLoading]   = useState(true);
-  const [error,     setError]     = useState("");
+  const [inscritos,  setInscritos]  = useState<Inscrito[]>([]);
+  const [columnas,   setColumnas]   = useState<ParcialCol[]>([]);
+  const [notasMap,   setNotasMap]   = useState<Record<string, Record<string, number | null>>>({});
+  const [loading,    setLoading]    = useState(true);
+  const [error,      setError]      = useState("");
+  const [showModal,  setShowModal]  = useState(false);
 
-  useEffect(() => {
-    async function cargar() {
-      setLoading(true);
-      setError("");
-      try {
-        // 1. Inscritos y parciales en paralelo
-        const [inscritosData, parcialesData] = await Promise.all([
-          apiFetch.get(`/admin/materias/${materia.id_materia}/inscritos`) as Promise<Inscrito[]>,
-          apiFetch.get(`/admin/materias/${materia.id_materia}/parciales`) as Promise<{
-            id_parcial:     string;
-            nombre_parcial: string | null;
-            valoracion:     number | null;
-            tipo:           string;
-          }[]>,
-        ]);
+  // ── Carga de datos ────────────────────────────────────────────────────────
+  const cargar = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const [inscritosData, parcialesData] = await Promise.all([
+        apiFetch.get(`/admin/materias/${materia.id_materia}/inscritos`) as Promise<Inscrito[]>,
+        apiFetch.get(`/admin/materias/${materia.id_materia}/parciales`) as Promise<{
+          id_parcial:     string;
+          nombre_parcial: string | null;
+          valoracion:     number | null;
+          tipo:           string;
+        }[]>,
+      ]);
 
-        setInscritos(inscritosData);
-        setColumnas(
-          parcialesData.map((p) => ({
-            id_parcial: p.id_parcial,
-            nombre:     p.nombre_parcial ?? "Parcial",
-            valoracion: p.valoracion,
-            tipo:       p.tipo === "practica" ? "practica" : "parcial",
-          }))
-        );
+      setInscritos(inscritosData);
+      setColumnas(
+        parcialesData.map((p) => ({
+          id_parcial: p.id_parcial,
+          nombre:     p.nombre_parcial ?? "Parcial",
+          valoracion: p.valoracion,
+          tipo:       p.tipo === "practica" ? "practica" : "parcial",
+        }))
+      );
 
-        // 2. Si no hay inscritos o parciales no hace falta seguir
-        if (inscritosData.length === 0 || parcialesData.length === 0) return;
+      if (inscritosData.length === 0 || parcialesData.length === 0) return;
 
-        // 3. Kardex de cada inscrito en paralelo
-        const kardexList = await Promise.all(
-          inscritosData.map((e) =>
-            apiFetch.get(`/admin/estudiantes/${e.id_estudiante}/kardex`) as Promise<KardexEstudiante>
-          )
-        );
+      const kardexList = await Promise.all(
+        inscritosData.map((e) =>
+          apiFetch.get(`/admin/estudiantes/${e.id_estudiante}/kardex`) as Promise<KardexEstudiante>
+        )
+      );
 
-        // 4. Construir mapa  id_estudiante → { id_parcial → nota }
-        const mapa: Record<string, Record<string, number | null>> = {};
-        kardexList.forEach((kardex) => {
-          const mk = kardex.materias.find((m) => m.id_materia === materia.id_materia);
-          mapa[kardex.id_estudiante] = {};
-          mk?.parciales.forEach((p) => {
-            mapa[kardex.id_estudiante][p.id_parcial] = p.nota_detalle?.nota ?? null;
-          });
+      const mapa: Record<string, Record<string, number | null>> = {};
+      kardexList.forEach((kardex) => {
+        const mk = kardex.materias.find((m) => m.id_materia === materia.id_materia);
+        mapa[kardex.id_estudiante] = {};
+        mk?.parciales.forEach((p) => {
+          mapa[kardex.id_estudiante][p.id_parcial] = p.nota_detalle?.nota ?? null;
         });
-        setNotasMap(mapa);
+      });
+      setNotasMap(mapa);
 
-      } catch (e: unknown) {
-        setError(e instanceof Error ? e.message : "Error al cargar los datos");
-      } finally {
-        setLoading(false);
-      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Error al cargar los datos");
+    } finally {
+      setLoading(false);
     }
-    cargar();
   }, [materia.id_materia]);
+
+  useEffect(() => { cargar(); }, [cargar]);
+
+  // Al cerrar el modal → refrescar tabla con los nuevos inscritos
+  const handleModalClose = () => {
+    setShowModal(false);
+    cargar();
+  };
 
   // ── Separar columnas ──────────────────────────────────────────────────────
   const colsParciales = columnas.filter((c) => c.tipo === "parcial");
@@ -129,6 +132,15 @@ export function InscritosMateria({ materia, onVolver }: Props) {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="dd-tab rn-root" style={{ maxWidth: 1100 }}>
+
+      {/* Modal de bulk — se monta solo cuando showModal es true */}
+      {showModal && (
+        <ModalBulk
+          idMateria={materia.id_materia}
+          onClose={handleModalClose}
+          onSuccess={(_r: BulkResult) => { /* resumen ya se muestra dentro del modal */ }}
+        />
+      )}
 
       <header className="dd-tab-header" style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
         <div style={{ flex: 1 }}>
@@ -149,12 +161,10 @@ export function InscritosMateria({ materia, onVolver }: Props) {
           </p>
         </div>
 
-        {/* Paso 2: este botón se activará cuando implementemos la subida de Excel */}
         <button
           className="dd-btn-primary rn-no-print"
           style={{ flexShrink: 0, marginTop: 4 }}
-          disabled
-          title="Próximamente"
+          onClick={() => setShowModal(true)}
         >
           📂 Subir lista Excel
         </button>
@@ -222,7 +232,7 @@ export function InscritosMateria({ materia, onVolver }: Props) {
                 return (
                   <tr key={e.id_estudiante} className="dr-reporte-row">
                     <td className="dr-td dr-td-ci">{e.ci_estudiante}</td>
-                    <td className="dr-td dr-td-nombre">{e.nombre} {e.apellido}</td>
+                    <td className="dr-td dr-td-nombre">{e.nombre_completo}</td>
 
                     {colsParciales.map((c) => (
                       <td key={c.id_parcial} className="dr-td dr-td-nota">

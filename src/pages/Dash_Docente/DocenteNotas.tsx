@@ -6,8 +6,7 @@ import type { DatosNotas } from "./DocenteLayout";
 
 interface NotaFila {
   id_estudiante:       string;
-  nombre:              string;
-  apellido:            string;
+  nombre_completo:     string;
   nota:                number | null;
   observacion:         string | null;
   ultima_modificacion: string | null;
@@ -16,11 +15,11 @@ interface NotaFila {
 type EstadoFila = "idle" | "saving" | "saved" | "error";
 
 interface FilaState {
-  nota:        string;       // valor del input (string para manejar decimales)
+  nota:        string;
   observacion: string;
   estado:      EstadoFila;
   error:       string;
-  dirty:       boolean;      // true si el usuario tocó el input
+  dirty:       boolean;
 }
 
 interface Props {
@@ -38,7 +37,6 @@ function estadoNota(
   return nota >= valoracion / 2 ? "aprobado" : "reprobado";
 }
 
-// Extrae el id_usuario del JWT almacenado en localStorage
 function getUsuarioId(): string | null {
   const token = localStorage.getItem("token");
   if (!token) return null;
@@ -50,7 +48,6 @@ function getUsuarioId(): string | null {
   }
 }
 
-// Bloqueado si han pasado más de 10 días desde la fecha del parcial
 function esBloqueado(fecha: string | null): boolean {
   if (!fecha) return false;
   const dias = (Date.now() - new Date(fecha + "T00:00:00").getTime()) / 86400000;
@@ -60,7 +57,19 @@ function esBloqueado(fecha: string | null): boolean {
 // ── Componente principal ──────────────────────────────────────────────────────
 
 export function DocenteNotas({ datos, onVolver }: Props) {
-  const { id_parcial, id_materia, nombre_parcial, sigla, fecha, valoracion } = datos;
+  const {
+    id_parcial,
+    id_materia,
+    nombre_parcial,
+    sigla,
+    valoracion,
+    fecha,
+    parcial_grupal,   // <── nuevo campo: UUID si este parcial pertenece a un grupal
+  } = datos;
+
+  // parcial_grupal !== null  →  este es un hijo: solo cargar notas pre-creadas del grupo
+  // parcial_grupal === null  →  normal: cargar todos los inscritos + notas existentes
+  const esGrupal = parcial_grupal != null;
 
   const [filas,   setFilas]   = useState<NotaFila[]>([]);
   const [estados, setEstados] = useState<Record<string, FilaState>>({});
@@ -69,64 +78,76 @@ export function DocenteNotas({ datos, onVolver }: Props) {
 
   const usuarioId = useRef<string | null>(getUsuarioId());
 
-  // ── Carga inicial: estudiantes inscritos + sus notas existentes ─────────────
+  // ── Carga inicial ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (!usuarioId.current) {
       setError("No se pudo obtener el usuario del token.");
       return;
     }
-
     setLoading(true);
     setError("");
 
-    Promise.all([
-      // Estudiantes inscritos en la materia
-      apiFetch.get(`/parciales/${id_materia}/estudiantes`),
-      // Notas ya guardadas para este parcial
-      apiFetch.get(
-        `/notas/usuarios/${usuarioId.current}/parciales/${id_parcial}/notas`
-      ),
-    ])
-      .then(([inscritos, notasExistentes]: [any[], NotaFila[]]) => {
-        // Combinar: para cada inscrito, buscar su nota si ya existe
-        const notaMap: Record<string, NotaFila> = {};
-        notasExistentes.forEach(n => { notaMap[n.id_estudiante] = n; });
+    if (esGrupal) {
+      // Parcial hijo de un grupal:
+      // Las notas ya fueron pre-creadas al crear el parcial → solo las traemos.
+      // El endpoint devuelve ÚNICAMENTE los estudiantes del grupo.
+      apiFetch
+        .get(`/notas/usuarios/${usuarioId.current}/parciales/${id_parcial}/notas`)
+        .then((notasExistentes: NotaFila[]) => {
+          setFilas(notasExistentes);
+          const est: Record<string, FilaState> = {};
+          notasExistentes.forEach(f => {
+            est[f.id_estudiante] = {
+              nota:        f.nota != null ? String(f.nota) : "",
+              observacion: f.observacion ?? "",
+              estado:      "idle",
+              error:       "",
+              dirty:       false,
+            };
+          });
+          setEstados(est);
+        })
+        .catch((e: Error) => setError(e.message))
+        .finally(() => setLoading(false));
+    } else {
+      // Parcial normal: todos los inscritos + notas que ya existan
+      Promise.all([
+        apiFetch.get(`/parciales/${id_materia}/estudiantes`),
+        apiFetch.get(`/notas/usuarios/${usuarioId.current}/parciales/${id_parcial}/notas`),
+      ])
+        .then(([inscritos, notasExistentes]: [any[], NotaFila[]]) => {
+          const notaMap: Record<string, NotaFila> = {};
+          notasExistentes.forEach(n => { notaMap[n.id_estudiante] = n; });
 
-        const filasInicial: NotaFila[] = inscritos.map(e => ({
-          id_estudiante:       e.id_estudiante,
-          nombre:              e.nombre,
-          apellido:            e.apellido,
-          nota:                notaMap[e.id_estudiante]?.nota        ?? null,
-          observacion:         notaMap[e.id_estudiante]?.observacion ?? null,
-          ultima_modificacion: notaMap[e.id_estudiante]?.ultima_modificacion ?? null,
-        }));
+          const filasInicial: NotaFila[] = inscritos.map(e => ({
+            id_estudiante:       e.id_estudiante,
+            nombre_completo:     e.nombre_completo,
+            nota:                notaMap[e.id_estudiante]?.nota        ?? null,
+            observacion:         notaMap[e.id_estudiante]?.observacion ?? null,
+            ultima_modificacion: notaMap[e.id_estudiante]?.ultima_modificacion ?? null,
+          }));
 
-        setFilas(filasInicial);
-
-        // Estado local de cada fila
-        const est: Record<string, FilaState> = {};
-        filasInicial.forEach(f => {
-          est[f.id_estudiante] = {
-            nota:        f.nota != null ? String(f.nota) : "",
-            observacion: f.observacion ?? "",
-            estado:      "idle",
-            error:       "",
-            dirty:       false,
-          };
-        });
-        setEstados(est);
-      })
-      .catch((e: Error) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, [id_parcial, id_materia]);
+          setFilas(filasInicial);
+          const est: Record<string, FilaState> = {};
+          filasInicial.forEach(f => {
+            est[f.id_estudiante] = {
+              nota:        f.nota != null ? String(f.nota) : "",
+              observacion: f.observacion ?? "",
+              estado:      "idle",
+              error:       "",
+              dirty:       false,
+            };
+          });
+          setEstados(est);
+        })
+        .catch((e: Error) => setError(e.message))
+        .finally(() => setLoading(false));
+    }
+  }, [id_parcial, id_materia, esGrupal]);
 
   // ── Actualizar campo local ─────────────────────────────────────────────────
 
-  function setFilaField(
-    id: string,
-    campo: "nota" | "observacion",
-    valor: string,
-  ) {
+  function setFilaField(id: string, campo: "nota" | "observacion", valor: string) {
     setEstados(prev => ({
       ...prev,
       [id]: { ...prev[id], [campo]: valor, dirty: true, estado: "idle", error: "" },
@@ -156,7 +177,7 @@ export function DocenteNotas({ datos, onVolver }: Props) {
         [id_estudiante]: {
           ...prev[id_estudiante],
           estado: "error",
-          error:  `Máximo ${valoracion} pts`,
+          error: `Máximo ${valoracion} pts`,
         },
       }));
       return;
@@ -177,7 +198,6 @@ export function DocenteNotas({ datos, onVolver }: Props) {
         body,
       );
 
-      // Actualizar fila con la nota guardada
       setFilas(prev =>
         prev.map(f =>
           f.id_estudiante === id_estudiante
@@ -191,7 +211,6 @@ export function DocenteNotas({ datos, onVolver }: Props) {
         [id_estudiante]: { ...prev[id_estudiante], estado: "saved", dirty: false },
       }));
 
-      // Reset estado visual tras 2s
       setTimeout(() => {
         setEstados(prev => ({
           ...prev,
@@ -204,24 +223,23 @@ export function DocenteNotas({ datos, onVolver }: Props) {
         [id_estudiante]: {
           ...prev[id_estudiante],
           estado: "error",
-          error:  e instanceof Error ? e.message : "Error al guardar",
+          error: e instanceof Error ? e.message : "Error al guardar",
         },
       }));
     }
   }
 
-  // ── Guardar todo de una vez ────────────────────────────────────────────────
+  // ── Guardar todo ───────────────────────────────────────────────────────────
 
   async function guardarTodo() {
     const sucios = Object.entries(estados)
       .filter(([, f]) => f.dirty)
       .map(([id]) => id);
-
     await Promise.all(sucios.map(id => guardar(id)));
   }
 
-  const haySucios  = Object.values(estados).some(f => f.dirty);
-  const bloqueado  = esBloqueado(fecha);
+  const haySucios = Object.values(estados).some(f => f.dirty);
+  const bloqueado = esBloqueado(fecha);
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -256,14 +274,34 @@ export function DocenteNotas({ datos, onVolver }: Props) {
             >
               {valoracion != null ? `/ ${valoracion} pts` : "sin valoración"}
             </span>
+            {/* Indicador visual si es parcial de grupo */}
+            {esGrupal && (
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: "#7c3aed",
+                  background: "#ede9fe",
+                  border: "1px solid #c4b5fd",
+                  borderRadius: 6,
+                  padding: "3px 8px",
+                }}
+              >
+                👥 Parcial de grupo
+              </span>
+            )}
           </div>
           <h1 className="dd-tab-title">{nombre_parcial}</h1>
           <p className="dd-tab-sub">
             {fecha
-              ? `Fecha: ${new Date(fecha).toLocaleDateString("es-BO", { day: "2-digit", month: "long", year: "numeric" })}`
+              ? `Fecha: ${new Date(fecha).toLocaleDateString("es-BO", {
+                  day: "2-digit", month: "long", year: "numeric",
+                })}`
               : "Sin fecha asignada"}
             {" · "}
-            {filas.length} estudiante{filas.length !== 1 ? "s" : ""} inscritos
+            {esGrupal
+              ? `${filas.length} estudiante${filas.length !== 1 ? "s" : ""} en el grupo`
+              : `${filas.length} estudiante${filas.length !== 1 ? "s" : ""} inscritos`}
           </p>
         </div>
 
@@ -287,14 +325,23 @@ export function DocenteNotas({ datos, onVolver }: Props) {
       )}
 
       {filas.length === 0 ? (
-        <div className="dd-empty-text">No hay estudiantes inscritos en esta materia.</div>
+        <div className="dd-empty-text">
+          {esGrupal
+            ? "No hay estudiantes asignados a este parcial de grupo."
+            : "No hay estudiantes inscritos en esta materia."}
+        </div>
       ) : (
         <div className="dd-card">
           <table className="dd-table dn-table">
             <thead>
               <tr>
                 <th style={{ width: "30%" }}>Estudiante</th>
-                <th style={{ width: "18%" }}>Nota <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>/ {valoracion ?? "?"} pts</span></th>
+                <th style={{ width: "18%" }}>
+                  Nota{" "}
+                  <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>
+                    / {valoracion ?? "?"} pts
+                  </span>
+                </th>
                 <th>Observación</th>
                 <th style={{ width: "80px" }}>Estado</th>
                 <th style={{ width: "90px" }}></th>
@@ -302,19 +349,16 @@ export function DocenteNotas({ datos, onVolver }: Props) {
             </thead>
             <tbody>
               {filas.map(f => {
-                const est  = estados[f.id_estudiante];
-                const nota = est?.nota ?? "";
+                const est     = estados[f.id_estudiante];
+                const nota    = est?.nota ?? "";
                 const notaNum = nota === "" ? null : Number(nota);
-                const estado = estadoNota(notaNum, valoracion);
+                const estado  = estadoNota(notaNum, valoracion);
 
                 return (
                   <tr key={f.id_estudiante} className={est?.dirty ? "dn-row-dirty" : ""}>
 
-                    {/* Nombre */}
-                    <td className="dd-td-name">
-                      {f.nombre} {f.apellido}
-                    </td>
-
+                    {/* Nombre_Completo */}
+                    <td className="dd-td-name">{f.nombre_completo}</td>
                     {/* Input nota */}
                     <td>
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -331,17 +375,14 @@ export function DocenteNotas({ datos, onVolver }: Props) {
                           onKeyDown={e => e.key === "Enter" && !bloqueado && guardar(f.id_estudiante)}
                           style={{
                             borderColor:
-                              est?.estado === "error"  ? "var(--clr-danger)"  :
-                              est?.estado === "saved"  ? "#2d7a4a"            :
-                              est?.dirty               ? "var(--clr-accent)"  :
+                              est?.estado === "error" ? "var(--clr-danger)"  :
+                              est?.estado === "saved" ? "#2d7a4a"            :
+                              est?.dirty              ? "var(--clr-accent)"  :
                               undefined,
                           }}
                         />
                         {notaNum !== null && valoracion !== null && (
-                          <span
-                            className={`dn-estado-pill dn-${estado}`}
-                            style={{ flexShrink: 0 }}
-                          >
+                          <span className={`dn-estado-pill dn-${estado}`} style={{ flexShrink: 0 }}>
                             {estado === "aprobado" ? "✓" : "✗"}
                           </span>
                         )}

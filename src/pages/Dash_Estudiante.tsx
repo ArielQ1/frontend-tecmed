@@ -15,6 +15,7 @@ interface Parcial {
   fecha:          string | null;
   valoracion:     number | null;
   nota_detalle:   NotaDetalle | null;
+  // parcial_grupal: string | null;
 }
 
 interface Materia {

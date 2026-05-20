@@ -15,6 +15,7 @@ export interface DatosNotas {
   sigla:          string;
   fecha:          string | null;
   valoracion:     number | null;
+  parcial_grupal: string;
 }
 
 type Vista =

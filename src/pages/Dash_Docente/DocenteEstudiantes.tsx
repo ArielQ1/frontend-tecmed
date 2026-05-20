@@ -19,8 +19,7 @@ interface Estudiante {
   id_estudiante: string;
   ci_estudiante: number;
   matricula:     number;
-  nombre:        string;
-  apellido:      string;
+  nombre_completo: string;
   anio:          number | null;
   mencion:       string | null;
 }
@@ -164,7 +163,7 @@ export function DocenteEstudiantes() {
               <tbody>
                 {estudiantes.map(e => (
                   <tr key={e.id_estudiante}>
-                    <td className="dd-td-name">{e.nombre} {e.apellido}</td>
+                    <td className="dd-td-name">{e.nombre_completo}</td>
                     <td>{e.ci_estudiante}</td>
                     <td>{e.matricula}</td>
                     <td>{e.anio ?? "—"}</td>
