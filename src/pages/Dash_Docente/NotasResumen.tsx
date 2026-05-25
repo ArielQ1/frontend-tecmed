@@ -6,6 +6,7 @@ import { apiFetch } from "../../api/client";
 export interface MateriaResumen {
   id_materia:    string;
   sigla:         string;
+  nombre_materia:string;
   horario:       string | null;
   anio:          number | null;
 }
@@ -279,7 +280,7 @@ export function ResumenNotas({ materia, parcialesDocente, notasResumen, inscrito
 function NotaCell({ nota, valoracion }: { nota: number | null; valoracion: number | null }) {
   if (nota === null) return <span className="rn-sin-nota">—</span>;
 
-  const aprobado = valoracion !== null ? nota >= valoracion / 2 : null;
+  const aprobado = valoracion !== null ? nota >= (valoracion / 2)+1 : null;
   return (
     <span className={`rn-nota-pill ${aprobado === true ? "ap" : aprobado === false ? "re" : ""}`}>
       {nota % 1 === 0 ? nota : nota.toFixed(2)}

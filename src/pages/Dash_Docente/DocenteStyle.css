@@ -996,3 +996,321 @@
 
   body { background: white; }
 }
+
+/* ════════════════════════════════════════════
+   PERFIL — PerfilDocente + PerfilBtn
+════════════════════════════════════════════ */
+
+/* ── Botón de perfil en el sidebar footer ── */
+
+.dd-perfil-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  padding: 6px 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 150ms;
+}
+.dd-perfil-btn:hover      { background: rgba(255,255,255,.08); }
+.dd-perfil-btn.active     { background: rgba(255,255,255,.12); }
+
+.dd-perfil-btn-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  gap: 1px;
+}
+
+.dd-perfil-btn-label {
+  font-size: 10px;
+  color: rgba(255,255,255,.35);
+  font-family: var(--font-mono);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.dd-perfil-btn-arrow {
+  color: rgba(255,255,255,.3);
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color 150ms, transform 150ms;
+}
+.dd-perfil-btn:hover .dd-perfil-btn-arrow,
+.dd-perfil-btn.active .dd-perfil-btn-arrow {
+  color: rgba(255,255,255,.7);
+  transform: translateX(2px);
+}
+
+/* ── Card principal del panel de perfil ── */
+
+.dp-card {
+  background: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  border-radius: 16px;
+  overflow: hidden;
+  max-width: 520px;
+}
+
+/* ── Hero: avatar + username ── */
+
+.dp-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 28px 32px 24px;
+  border-bottom: 1px solid var(--clr-border);
+  background: #faf9f7;
+}
+
+.dp-hero-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--clr-accent);
+  color: white;
+  font-family: var(--font-display);
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0;
+}
+
+.dp-hero-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.dp-hero-username {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--clr-ink);
+}
+
+.dp-hero-sub {
+  font-size: 12px;
+  color: var(--clr-ink-3);
+  font-weight: 300;
+}
+
+/* ── Tabs dentro de la card ── */
+
+.dp-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--clr-border);
+}
+
+.dp-tab {
+  flex: 1;
+  padding: 13px 0;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--clr-ink-3);
+  cursor: pointer;
+  transition: color 150ms, border-color 150ms;
+  margin-bottom: -1px;
+}
+.dp-tab:hover  { color: var(--clr-ink-2); }
+.dp-tab.active {
+  color: var(--clr-accent);
+  font-weight: 500;
+  border-bottom-color: var(--clr-accent);
+}
+
+/* ── Cuerpo del formulario ── */
+
+.dp-body {
+  padding: 28px 32px 32px;
+}
+
+.dp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.dp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dp-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--clr-ink-3);
+}
+
+/* ── Input ── */
+
+.dp-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.dp-input {
+  width: 100%;
+  height: 42px;
+  padding: 0 40px 0 14px;
+  background: var(--clr-bg);
+  border: 1.5px solid var(--clr-border);
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--clr-ink);
+  outline: none;
+  transition: border-color 150ms, background 150ms, box-shadow 150ms;
+}
+.dp-input:focus {
+  border-color: var(--clr-accent);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(29,78,107,.08);
+}
+
+/* input sin wrap (campo usuario) */
+.dp-field > .dp-input {
+  padding: 0 14px;
+}
+
+.dp-eye {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--clr-ink-3);
+  padding: 0;
+  line-height: 1;
+  transition: color 150ms;
+}
+.dp-eye:hover { color: var(--clr-ink); }
+
+/* ── Hint ── */
+
+.dp-hint {
+  font-size: 12px;
+  color: var(--clr-ink-3);
+  font-weight: 300;
+  line-height: 1.5;
+}
+
+/* ── Feedback ── */
+
+.dp-feedback {
+  padding: 11px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  animation: dp-fadein .2s ease;
+}
+.dp-feedback--ok  {
+  background: #d1fae5;
+  color: #2d7a4a;
+  border: 1px solid #a7f3c0;
+}
+.dp-feedback--err {
+  background: var(--clr-danger-bg);
+  color: var(--clr-danger);
+  border: 1px solid rgba(155,34,38,.2);
+}
+
+@keyframes dp-fadein {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Submit ── */
+
+.dp-submit {
+  width: 100%;
+  height: 42px;
+  font-size: 14px;
+  border-radius: 10px;
+  margin-top: 4px;
+}
+.dp-submit:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ── Spinner ── */
+
+.dp-spinner {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,.35);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: dp-spin .7s linear infinite;
+}
+@keyframes dp-spin { to { transform: rotate(360deg); } }
+
+/* ── Password strength ── */
+
+.dp-strength {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 2px;
+}
+
+.dp-strength-bars {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+
+.dp-strength-bar {
+  height: 3px;
+  flex: 1;
+  border-radius: 2px;
+  transition: background .3s;
+}
+
+.dp-strength-label {
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  min-width: 44px;
+  transition: color .3s;
+}
+
+/* ── Botón volver (reutiliza dd-btn-sm si existe) ── */
+
+.dd-btn-volver {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: none;
+  border: 1px solid var(--clr-border);
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--clr-ink-2);
+  cursor: pointer;
+  margin-bottom: 16px;
+  transition: border-color 150ms, color 150ms;
+}
+.dd-btn-volver:hover {
+  border-color: var(--clr-accent);
+  color: var(--clr-accent);
+}

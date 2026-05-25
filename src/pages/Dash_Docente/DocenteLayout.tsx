@@ -2,9 +2,11 @@ import { useState } from "react";
 import "./DocenteStyle.css";
 import { DocenteResumen }    from "./DocenteResumen";
 import { DocenteEstudiantes } from "./DocenteEstudiantes";
-import { DocenteParciales }   from "./DocenteParciales";
+import { DocenteParciales }   from "./DocenteParciales/DocenteParciales";
 import { DocenteNotas }       from "./DocenteNotas";
-// import { NotasResumen }       from "./NotasResumen";\
+
+import { PerfilBtn, PerfilDocente } from "./DocentePerfil";
+// import "./DocentePerfi.css";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -15,7 +17,8 @@ export interface DatosNotas {
   sigla:          string;
   fecha:          string | null;
   valoracion:     number | null;
-  parcial_grupal: string;
+  parcial_grupal: string;  
+  tipo?:          string;
 }
 
 type Vista =
@@ -23,7 +26,8 @@ type Vista =
   | { tab: "notas"; id_materia?: string }
   | { tab: "estudiantes"  }
   | { tab: "parciales"    }
-  | { tab: "notas-parc"; datos: DatosNotas };
+  | { tab: "notas-parc"; datos: DatosNotas }
+  | { tab: "perfil"  };
 
 interface DocenteInfo {
   username: string;
@@ -64,6 +68,21 @@ export function DashDocente({ onLogout, docenteInfo }: Props) {
             onVolver={() => setVista({ tab: "parciales" })}
           />
         )}
+        {vista.tab === "perfil" && (
+          <PerfilDocente
+            username={docenteInfo?.username ?? ""}
+            onVolver={() => setVista({ tab: "resumen" })}
+            onUsernameChange={nuevoUsername => {
+              // actualiza el estado del padre según cómo manejes docenteInfo
+            }}
+        //             <div className="dd-user">
+        //   <div className="dd-user-avatar">{username[0]?.toUpperCase()}</div>
+        //   <span className="dd-user-name">@{username}</span>
+        // </div>
+            
+          />
+        )}
+        
       </main>
     </div>
   );
@@ -106,10 +125,11 @@ function Sidebar({
         ))}
       </nav>
       <div className="dd-sidebar-footer">
-        <div className="dd-user">
-          <div className="dd-user-avatar">{username[0]?.toUpperCase()}</div>
-          <span className="dd-user-name">@{username}</span>
-        </div>
+        <PerfilBtn
+          username={username}
+          activo={tabActivo === "perfil"}
+          onClick={() => onTab("perfil")}
+        />
         <button className="dd-logout" onClick={onLogout} title="Cerrar sesión">⏻</button>
       </div>
     </aside>

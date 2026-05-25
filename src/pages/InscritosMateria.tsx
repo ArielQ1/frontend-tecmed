@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "../api/client";
-import { ModalBulk } from "./comp_bulks/ModalBulk_admin";
-import type { BulkResult } from "./comp_bulks/ModalBulk_admin";
+import { ModalBulk } from "./comp_bulks/ModalBulk";
+import type { BulkResult } from "./comp_bulks/ModalBulk";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

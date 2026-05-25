@@ -50,7 +50,7 @@ function calcularEstado(
     }
   }
   if (!tieneNota) return "sin notas";
-  return totalNota / totalVal >= 0.5 ? "aprobando" : "reprobando";
+  return totalNota / totalVal >= 0.51 ? "aprobando" : "reprobando";
 }
 
 function EstadoBadge({ estado }: { estado: "aprobando" | "reprobando" | "sin notas" }) {
